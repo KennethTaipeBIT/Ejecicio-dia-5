@@ -50,10 +50,21 @@ jobs:
             - name: Validar que la función responde
               shell: powershell
               run: |
-                $response = Invoke-WebRequest -Uri "https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld" -UseBasicParsing
-                if ($response.StatusCode -ne 200) {
-                    throw "La función respondió con código $($response.StatusCode)"
+                $uri = "https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld"
+                $maxAttempts = 6
+                for ($i = 1; $i -le $maxAttempts; $i++) {
+                    try {
+                        $response = Invoke-WebRequest -Uri $uri -UseBasicParsing
+                        if ($response.StatusCode -eq 200) {
+                            Write-Host "OK en el intento $i"
+                            exit 0
+                        }
+                    } catch {
+                        Write-Host "Intento $i de $maxAttempts falló: $($_.Exception.Message)"
+                    }
+                    Start-Sleep -Seconds 15
                 }
+                throw "La función no respondió correctamente tras $maxAttempts intentos"
 
             - name: Mostrar URL de la función
               shell: powershell
