@@ -26,7 +26,7 @@ on:                                      # Eventos que disparan este workflow
 
 
 env:                                     # Variables de entorno disponibles en todos los steps del job
-    AZURE_FUNCTIONAPP_NAME: func-kenneth-taipe   # Nombre del recurso Function App en Azure
+    AZURE_FUNCTIONAPP_NAME: func-kenneth-taipe   # ESTO DEBEN CAMBIAR func-<primer nombre>-<primer apellido>
     RESOURCE_GROUP: rg-alumnos                   # Resource group de Azure donde vive ese recurso
 
 jobs:
@@ -68,10 +68,13 @@ jobs:
             - name: Deploy a producción (Run From Package)  # Paso 6: subir el .zip a la Function App
               shell: powershell
               run: |
-                az functionapp deployment source config-zip `   # Comando de Azure CLI para desplegar un zip
-                    --name "$env:AZURE_FUNCTIONAPP_NAME" `       # Nombre de la Function App destino
-                    --resource-group "$env:RESOURCE_GROUP" `     # Resource group donde esta esa Function App
-                    --src deploy.zip                             # Archivo zip que se sube (el que armamos en el paso anterior)
+                # Comando de Azure CLI para desplegar un zip. IMPORTANTE: en PowerShell el
+                # backtick de continuacion de linea debe ser el ULTIMO caracter de la linea;
+                # si se le agrega un comentario al lado, deja de funcionar como continuacion.
+                az functionapp deployment source config-zip `
+                    --name "$env:AZURE_FUNCTIONAPP_NAME" `
+                    --resource-group "$env:RESOURCE_GROUP" `
+                    --src deploy.zip
 
             # Nota: en un plan Windows Consumption (como este), Azure indexa el
             # paquete casi al instante despues del deploy. En un plan Linux

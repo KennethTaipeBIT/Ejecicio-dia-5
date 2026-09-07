@@ -6,19 +6,32 @@ Ejercicio de pipeline CI/CD con GitHub Actions: compila una Azure Function
 Ver el workflow completo y comentado en [`.github/workflows/deploy.yaml`](.github/workflows/deploy.yaml).
 
 > **Este pipeline usa un runner self-hosted** (`runs-on: self-hosted` en el
-> workflow), no los runners de GitHub. Eso significa que el job corre en una
-> máquina propia (tu laptop o una VM) que vos preparás e instalás con las
-> herramientas necesarias (.NET SDK, Azure CLI) — GitHub no provee esa
-> máquina ni el software. Las secciones de abajo son justamente esa
-> preparación: instalar dependencias, descargar el runner, registrarlo en tu
-> repo y dejarlo corriendo para que pueda tomar los jobs.
+> workflow), no los runners de GitHub. Esto significa que el job se ejecuta en
+> una máquina propia (una laptop o una VM) en la que se instalan previamente
+> las herramientas necesarias (.NET SDK, Azure CLI) — GitHub no provee esa
+> máquina ni el software. Las secciones siguientes cubren esa preparación:
+> instalar dependencias, descargar el runner, registrarlo en el repositorio y
+> dejarlo en ejecución para que pueda tomar los jobs.
+
+## 0. Personalizar el ejercicio
+
+Cada alumno debe adaptar dos nombres antes de desplegar:
+
+1. **Nombre de la Function App**: variable `AZURE_FUNCTIONAPP_NAME` en
+   [`.github/workflows/deploy.yaml`](.github/workflows/deploy.yaml) — debe
+   coincidir con el recurso creado en Azure (`func-<nombre>-<apellido>`).
+2. **Nombre de la función**: atributo `[Function("HelloWorld")]` en
+   [`HelloWorld.cs`](HelloWorld.cs) — define la ruta pública del endpoint
+   (`/api/<Nombre>`). Si se cambia, hay que actualizar también la URL en el
+   paso *Validar que la función responde* del workflow para que apunte al
+   nuevo nombre.
 
 ## Requisitos previos
 
 - Windows con [winget](https://learn.microsoft.com/windows/package-manager/winget/) instalado.
-- Acceso de administrador en la máquina que va a correr el runner.
+- Acceso de administrador en la máquina que va a ejecutar el runner.
 - Una suscripción de Azure con permisos sobre el resource group del ejercicio.
-- El secret de repo `AZURE_CREDENTIALS` configurado (JSON de un service principal).
+- El secret de repositorio `AZURE_CREDENTIALS` configurado (JSON de un service principal).
 
 ## 1. Instalar el SDK de .NET y Azure CLI
 
@@ -43,17 +56,17 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/actions-runner-win-x64-2.337.0.zip", "$PWD")
 ```
 
-> Verifica siempre la versión y el checksum SHA256 contra la [página de releases](https://github.com/actions/runner/releases) del runner antes de ejecutar el zip.
+> Verificar siempre la versión y el checksum SHA256 contra la [página de releases](https://github.com/actions/runner/releases) del runner antes de ejecutar el zip.
 
-## 3. Registrar el runner en tu repositorio
+## 3. Registrar el runner en el repositorio
 
-Genera un token nuevo desde tu repo en GitHub:
+Generar un token nuevo desde el repositorio en GitHub:
 **Settings → Actions → Runners → New self-hosted runner**. El token es de un
-solo uso y expira en aproximadamente 1 hora — no lo compartas ni lo dejes
-commiteado en el repo.
+solo uso y expira en aproximadamente 1 hora — no debe compartirse ni quedar
+commiteado en el repositorio.
 
 ```powershell
-./config.cmd --url https://github.com/<tu-usuario>/<tu-repo> --token <TOKEN-GENERADO-EN-GITHUB>
+./config.cmd --url https://github.com/<usuario>/<repositorio> --token <TOKEN-GENERADO-EN-GITHUB>
 ```
 
 ## 4. Iniciar el runner
@@ -62,14 +75,15 @@ commiteado en el repo.
 ./run.cmd
 ```
 
-Con el runner corriendo, cualquier push a `main` (o un disparo manual desde la
-pestaña *Actions* del repo) ejecuta el workflow y despliega la función a Azure.
+Con el runner en ejecución, cualquier push a `main` (o un disparo manual desde
+la pestaña *Actions* del repositorio) ejecuta el workflow y despliega la
+función a Azure.
 
 ## Notas
 
-- El runner debe quedar corriendo (`./run.cmd`) mientras se espera que el
-  workflow se ejecute; ciérralo con `Ctrl+C` cuando termines.
-- Para que el runner arranque solo con Windows, instálalo como servicio con
-  `./svc.sh install` (Linux/macOS) o el equivalente `./config.cmd` con
-  opciones de servicio en Windows — ver la
+- El runner debe permanecer en ejecución (`./run.cmd`) mientras se espera que
+  el workflow corra; se cierra con `Ctrl+C` al finalizar.
+- Para que el runner inicie automáticamente con Windows, se puede instalar
+  como servicio con `./svc.sh install` (Linux/macOS) o el equivalente
+  `./config.cmd` con opciones de servicio en Windows — ver la
   [documentación oficial](https://docs.github.com/actions/hosting-your-own-runners).
