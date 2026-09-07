@@ -1,72 +1,87 @@
-name: flujo ci-cd Kenneth
- 
-on:
-    push:
+# ============================================================================
+# DÍA 5 - CD (Continuous Deployment)
+# ------------------------------------------------------------------------
+# Ejercicio: pipeline de CI/CD con GitHub Actions que compila una Azure
+# Function (.NET 8 isolated) y la despliega automáticamente a Azure cada
+# vez que se hace push a la rama main.
+#
+# Flujo:
+#   1. CI  -> compila el proyecto .NET y genera un paquete .zip
+#   2. CD  -> se autentica en Azure y sube ese .zip a la Function App
+#   3. Valida que el endpoint HTTP de la función responda correctamente
+#
+# Requisitos:
+#   - Secret de repo "AZURE_CREDENTIALS": JSON de un service principal con
+#     permisos sobre el resource group donde vive la Function App.
+#   - Un runner self-hosted con dotnet 8 SDK y Azure CLI instalados.
+# ============================================================================
+
+name: flujo ci-cd Kenneth               # Nombre del workflow, visible en la pestaña "Actions" de GitHub
+
+on:                                      # Eventos que disparan este workflow
+    push:                                # Se dispara con un push...
         branches:
-            - main
-    workflow_dispatch: {}
- 
- 
-env:
-    AZURE_FUNCTIONAPP_NAME: func-kenneth-taipe
-    RESOURCE_GROUP: rg-alumnos
- 
+            - main                       # ...pero solo si es a la rama main
+    workflow_dispatch: {}                # Tambien se puede disparar a mano desde GitHub (boton "Run workflow")
+
+
+env:                                     # Variables de entorno disponibles en todos los steps del job
+    AZURE_FUNCTIONAPP_NAME: func-kenneth-taipe   # Nombre del recurso Function App en Azure
+    RESOURCE_GROUP: rg-alumnos                   # Resource group de Azure donde vive ese recurso
+
 jobs:
-    build_and_deploy:
-        runs-on: self-hosted
-        # CI
+    build_and_deploy:                   # Nombre interno del job (un workflow puede tener varios jobs)
+        runs-on: self-hosted             # Se ejecuta en un runner propio (no en los runners de GitHub)
         steps:
-            - name: Hacer Checkout
-              uses: actions/checkout@v7
- 
-            - name: Configurar dotnet 8
+
+            # ---------------------------------------------------------------
+            # CI: compilar y empaquetar el codigo
+            # ---------------------------------------------------------------
+
+            - name: Hacer Checkout        # Paso 1: traer el codigo del repo al runner
+              uses: actions/checkout@v7   # Accion oficial de GitHub que hace "git clone" del repo
+
+            - name: Configurar dotnet 8   # Paso 2: instalar/preparar el SDK de .NET en el runner
               uses: actions/setup-dotnet@v6
               with:
-                dotnet-version: '8.0.x'
- 
-            - name: Restaurar y publicar
+                dotnet-version: '8.0.x'   # Version del SDK que necesita el proyecto
+
+            - name: Restaurar y publicar  # Paso 3: compilar el proyecto en modo Release
               run: |
-                dotnet restore
-                dotnet publish --configuration Release --output ./output
- 
-            - name: Hacer zip
-              shell: powershell
+                dotnet restore                                          # Descarga los paquetes NuGet que usa el proyecto
+                dotnet publish --configuration Release --output ./output # Compila y deja el resultado listo para deploy en ./output
+
+            - name: Hacer zip              # Paso 4: empaquetar el resultado compilado en un .zip
+              shell: powershell             # Este step corre en PowerShell (el runner es Windows)
               run: |
-                Compress-Archive -Path ./output/* -DestinationPath ./deploy.zip -Force
- 
-            # CD
-            - name: Login en Azure (service principal)
-              uses: azure/login@v3
+                Compress-Archive -Path ./output/* -DestinationPath ./deploy.zip -Force  # Comprime todo ./output en deploy.zip
+
+            # ---------------------------------------------------------------
+            # CD: autenticar en Azure y desplegar
+            # ---------------------------------------------------------------
+
+            - name: Login en Azure (service principal)  # Paso 5: autenticarse en Azure
+              uses: azure/login@v3                       # Accion oficial de Azure para login desde Actions
               with:
-                creds: ${{ secrets.AZURE_CREDENTIALS }}
- 
-            - name: Deploy a producción (Run From Package)
-              shell: powershell
-              run: |
-                az functionapp deployment source config-zip `
-                    --name "$env:AZURE_FUNCTIONAPP_NAME" `
-                    --resource-group "$env:RESOURCE_GROUP" `
-                    --src deploy.zip
+                creds: ${{ secrets.AZURE_CREDENTIALS }}   # Usa el secret del repo (nunca se hardcodean credenciales)
 
-            - name: Sincronizar triggers
+            - name: Deploy a producción (Run From Package)  # Paso 6: subir el .zip a la Function App
               shell: powershell
               run: |
-                az resource invoke-action `
-                    --action syncfunctiontriggers `
-                    --resource-group "$env:RESOURCE_GROUP" `
-                    --name "$env:AZURE_FUNCTIONAPP_NAME" `
-                    --resource-type Microsoft.Web/sites
-                Start-Sleep -Seconds 15
+                az functionapp deployment source config-zip `   # Comando de Azure CLI para desplegar un zip
+                    --name "$env:AZURE_FUNCTIONAPP_NAME" `       # Nombre de la Function App destino
+                    --resource-group "$env:RESOURCE_GROUP" `     # Resource group donde esta esa Function App
+                    --src deploy.zip                             # Archivo zip que se sube (el que armamos en el paso anterior)
 
-            - name: Validar que la función responde
+            # Nota: en un plan Windows Consumption (como este), Azure indexa el
+            # paquete casi al instante despues del deploy. En un plan Linux
+            # Consumption hace falta ademas sincronizar los triggers a mano
+            # (az resource invoke-action --action syncfunctiontriggers) porque
+            # el paquete se sirve desde una URL externa y tarda en reindexar.
+            - name: Validar que la función responde   # Paso 7: comprobar que el endpoint quedo funcionando
               shell: powershell
               run: |
-                $uri = "https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld"
-                $response = Invoke-WebRequest -Uri $uri -UseBasicParsing
-                Write-Host "Respuesta: $($response.StatusCode)"
-
-            - name: Mostrar URL de la función
-              shell: powershell
-              run: |
-                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### 🚀 Función desplegada"
-                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "URL: https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld"
+                $uri = "https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld"  # URL publica de la funcion
+                $response = Invoke-WebRequest -Uri $uri -UseBasicParsing                          # Hace un GET HTTP a esa URL
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### 🚀 Función desplegada ($($response.StatusCode))"  # Escribe el resultado en el resumen del run
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "URL: $uri"                                            # Deja la URL a mano en el resumen
