@@ -50,8 +50,10 @@ jobs:
             - name: Validar que la función responde
               shell: powershell
               run: |
-                curl --fail --silent --show-error `
-                  "https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld"
+                $response = Invoke-WebRequest -Uri "https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld" -UseBasicParsing
+                if ($response.StatusCode -ne 200) {
+                    throw "La función respondió con código $($response.StatusCode)"
+                }
 
             - name: Mostrar URL de la función
               shell: powershell
