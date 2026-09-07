@@ -1,0 +1,162 @@
+# ============================================================================
+# DÍA 5 - CD (Continuous Deployment) - EJERCICIO
+# ------------------------------------------------------------------------
+# Instrucciones paso a paso para construir, desde cero, el pipeline de CI/CD
+# que compila una Azure Function (.NET 8 isolated) y la despliega a Azure.
+#
+# Cómo usar este archivo:
+#   1. Crear un archivo nuevo en .github/workflows/deploy.yaml (ese sí lo lee
+#      GitHub Actions; este archivo es solo la guía y NO se ejecuta).
+#   2. Completar cada TODO siguiendo la pista, en orden.
+#   3. Hacer commit y push a main, revisar la pestaña "Actions" del repo.
+#   4. Recién cuando el workflow propio funcione, comparar con la solución
+#      completa y comentada en .github/workflows/deploy.yaml.
+#
+# Antes de empezar, revisar README.md: ahí está la personalización necesaria
+# (nombre de la Function App y nombre de la función) y el setup del runner
+# self-hosted.
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# TODO 1: nombre del workflow
+# ---------------------------------------------------------------------------
+# Elegir un nombre descriptivo. Aparece en la pestaña "Actions" de GitHub.
+name: <COMPLETAR>
+
+# ---------------------------------------------------------------------------
+# TODO 2: disparadores del workflow
+# ---------------------------------------------------------------------------
+# ¿Qué evento debería iniciar el pipeline? Pensar: "cada vez que se sube
+# código a la rama principal". Buscar la clave del evento de git y cómo
+# restringirlo a una sola rama.
+# Opcional: agregar también un disparador manual (para poder correrlo a mano
+# desde el botón "Run workflow" en GitHub, sin necesidad de un push).
+on:
+  # <COMPLETAR>
+
+# ---------------------------------------------------------------------------
+# TODO 3: variables de entorno del pipeline
+# ---------------------------------------------------------------------------
+# Van a necesitar reutilizar dos valores en varios pasos: el nombre exacto de
+# su Function App en Azure y el resource group donde vive. Definirlos acá
+# evita repetirlos (y equivocarse al escribirlos) en cada step.
+env:
+  # <COMPLETAR>: AZURE_FUNCTIONAPP_NAME
+  # <COMPLETAR>: RESOURCE_GROUP
+
+jobs:
+  build_and_deploy:
+    # ---------------------------------------------------------------------
+    # TODO 4: dónde corre el job
+    # ---------------------------------------------------------------------
+    # No va a correr en la infraestructura de GitHub: va a correr en la PC
+    # que configuraron según el README (runner self-hosted). ¿Cuál es la
+    # palabra clave para eso?
+    runs-on: <COMPLETAR>
+
+    steps:
+      # =====================================================================
+      # BLOQUE CI: compilar y empaquetar el código
+      # =====================================================================
+
+      # -----------------------------------------------------------------
+      # TODO 5: traer el código del repositorio al runner
+      # -----------------------------------------------------------------
+      # Pista: es una Action oficial de GitHub, hace el equivalente a un
+      # "git clone" del repo dentro del runner. Sin este paso, los pasos
+      # siguientes no tienen ningún archivo con el que trabajar.
+      # - name: <COMPLETAR>
+      #   uses: <COMPLETAR>
+
+      # -----------------------------------------------------------------
+      # TODO 6: instalar el SDK de .NET 8 en el runner
+      # -----------------------------------------------------------------
+      # Pista: Action oficial "setup-dotnet". Hay que indicarle la versión
+      # exacta del SDK que necesita el proyecto (8.0.x).
+      # - name: <COMPLETAR>
+      #   uses: <COMPLETAR>
+      #   with:
+      #     dotnet-version: <COMPLETAR>
+
+      # -----------------------------------------------------------------
+      # TODO 7: compilar el proyecto
+      # -----------------------------------------------------------------
+      # Dos comandos de dotnet, uno atrás del otro:
+      #   a) restaurar los paquetes NuGet del proyecto
+      #   b) publicar en modo Release hacia una carpeta de salida, por
+      #      ejemplo ./output
+      # - name: <COMPLETAR>
+      #   run: |
+      #     <COMPLETAR>
+      #     <COMPLETAR>
+
+      # -----------------------------------------------------------------
+      # TODO 8: empaquetar el resultado en un .zip
+      # -----------------------------------------------------------------
+      # Azure espera un .zip para el deploy. En PowerShell existe un cmdlet
+      # que comprime una carpeta entera. Comprimir el CONTENIDO de
+      # ./output (no la carpeta en sí) hacia, por ejemplo, ./deploy.zip.
+      # - name: <COMPLETAR>
+      #   shell: powershell
+      #   run: |
+      #     <COMPLETAR>
+
+      # =====================================================================
+      # BLOQUE CD: autenticar en Azure y desplegar
+      # =====================================================================
+
+      # -----------------------------------------------------------------
+      # TODO 9: login en Azure
+      # -----------------------------------------------------------------
+      # Pista: Action oficial "azure/login". Necesita credenciales de un
+      # service principal. Esas credenciales NUNCA se escriben directamente
+      # en el yaml: se leen desde un secret del repositorio
+      # (Settings → Secrets and variables → Actions). ¿Cómo se referencia
+      # un secret dentro de un workflow?
+      # - name: <COMPLETAR>
+      #   uses: <COMPLETAR>
+      #   with:
+      #     creds: <COMPLETAR>
+
+      # -----------------------------------------------------------------
+      # TODO 10: desplegar el .zip a la Function App
+      # -----------------------------------------------------------------
+      # Pista: comando de Azure CLI dentro de la familia
+      # "az functionapp deployment source ...", con el sub-comando que
+      # sube un paquete zip directamente (Run From Package). Necesita el
+      # nombre de la Function App, el resource group, y la ruta al zip
+      # armado en el TODO 8. Usar las variables de entorno del TODO 3
+      # ($env:NOMBRE_DE_VARIABLE en PowerShell).
+      #
+      # CUIDADO (bug clásico): si el comando ocupa varias líneas con el
+      # backtick (`) de continuación, ese backtick debe ser el ÚLTIMO
+      # carácter de la línea. Un comentario al lado del backtick rompe la
+      # continuación y el comando se parte en pedazos inválidos.
+      # - name: <COMPLETAR>
+      #   shell: powershell
+      #   run: |
+      #     <COMPLETAR>
+
+      # -----------------------------------------------------------------
+      # TODO 11: validar que la función quedó funcionando
+      # -----------------------------------------------------------------
+      # Hacer un GET HTTP a la URL pública de la función y confirmar que
+      # responde. La URL sigue el patrón:
+      #   https://<AZURE_FUNCTIONAPP_NAME>.azurewebsites.net/api/<NombreDeLaFuncion>
+      # ¿Cuál es el nombre de su función? (revisar el atributo
+      # [Function("...")] en el archivo .cs del proyecto).
+      # Pista: cmdlet de PowerShell para hacer una petición HTTP y leer el
+      # StatusCode de la respuesta.
+      # - name: <COMPLETAR>
+      #   shell: powershell
+      #   run: |
+      #     <COMPLETAR>
+
+# ============================================================================
+# Checklist final antes de dar el ejercicio por resuelto:
+#   [ ] El workflow corrió en la pestaña "Actions" sin errores
+#   [ ] El último step (validación) mostró un StatusCode 200
+#   [ ] Visitar la URL de la función en el navegador y ver la respuesta
+#   [ ] Comparar el propio deploy.yaml contra la solución comentada para
+#       revisar diferencias y entender el porqué de cada línea
+# ============================================================================

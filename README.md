@@ -3,7 +3,11 @@
 Ejercicio de pipeline CI/CD con GitHub Actions: compila una Azure Function
 (.NET 8 isolated) y la despliega automáticamente a Azure en cada push a `main`.
 
-Ver el workflow completo y comentado en [`.github/workflows/deploy.yaml`](.github/workflows/deploy.yaml).
+**Para resolver el ejercicio:** seguir la guía paso a paso en
+[`ejercicio-ci-cd.yaml`](ejercicio-ci-cd.yaml) y construir el propio
+`.github/workflows/deploy.yaml` completando cada TODO. Recién al final,
+comparar contra la solución completa y comentada en
+[`.github/workflows/deploy.yaml`](.github/workflows/deploy.yaml) de este repo.
 
 > **Este pipeline usa un runner self-hosted** (`runs-on: self-hosted` en el
 > workflow), no los runners de GitHub. Esto significa que el job se ejecuta en
