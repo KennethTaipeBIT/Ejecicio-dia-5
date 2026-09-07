@@ -15,7 +15,7 @@ public class HelloWorld
     {
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
-        response.WriteString("Hola mi nombre ck");
+        response.WriteString("Hola mi nombre");
         return response;
     }
 }

@@ -26,7 +26,7 @@ on:                                      # Eventos que disparan este workflow
 
 
 env:                                     # Variables de entorno disponibles en todos los steps del job
-    AZURE_FUNCTIONAPP_NAME: func-kenneth-taipe   # ESTO DEBEN CAMBIAR func-<primer nombre>-<primer apellido>
+    AZURE_FUNCTIONAPP_NAME: func-<nombre>-<apellido>   # ESTO DEBEN CAMBIAR func-<primer nombre>-<primer apellido> revisar en: Listado de funciones disponibles.png
     RESOURCE_GROUP: rg-alumnos                   # Resource group de Azure donde vive ese recurso
 
 jobs:
