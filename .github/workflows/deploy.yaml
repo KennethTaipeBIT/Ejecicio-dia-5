@@ -61,21 +61,9 @@ jobs:
               shell: powershell
               run: |
                 $uri = "https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld"
-                $maxAttempts = 6
-                for ($i = 1; $i -le $maxAttempts; $i++) {
-                    try {
-                        $response = Invoke-WebRequest -Uri $uri -UseBasicParsing
-                        if ($response.StatusCode -eq 200) {
-                            Write-Host "OK en el intento $i"
-                            exit 0
-                        }
-                    } catch {
-                        Write-Host "Intento $i de $maxAttempts falló: $($_.Exception.Message)"
-                    }
-                    Start-Sleep -Seconds 15
-                }
-                throw "La función no respondió correctamente tras $maxAttempts intentos"
- 
+                $response = Invoke-WebRequest -Uri $uri -UseBasicParsing
+                Write-Host "Respuesta: $($response.StatusCode)"
+
             - name: Mostrar URL de la función
               shell: powershell
               run: |
