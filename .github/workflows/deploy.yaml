@@ -29,10 +29,10 @@ jobs:
                 dotnet publish --configuration Release --output ./output
 
             - name: Hacer zip
+              shell: pwsh
               run: |
-                cd output
-                zip -r ../deploy.zip .
-                
+                Compress-Archive -Path ./output/* -DestinationPath ./deploy.zip -Force
+
             # CD
             - name: Login en Azure (service principal)
               uses: azure/login@v3
@@ -40,19 +40,22 @@ jobs:
                 creds: ${{ secrets.AZURE_CREDENTIALS }}
 
             - name: Deploy a producción (Run From Package)
+              shell: pwsh
               run: |
-                az functionapp deployment source config-zip \
-                    --name "$AZURE_FUNCTIONAPP_NAME" \
-                    --resource-group "$RESOURCE_GROUP" \
+                az functionapp deployment source config-zip `
+                    --name "$env:AZURE_FUNCTIONAPP_NAME" `
+                    --resource-group "$env:RESOURCE_GROUP" `
                     --src deploy.zip
 
             - name: Validar que la función responde
+              shell: pwsh
               run: |
-                 curl --fail --silent --show-error \
-                  "https://${AZURE_FUNCTIONAPP_NAME}.azurewebsites.net/api/HelloWorld"
+                curl --fail --silent --show-error `
+                  "https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld"
 
             - name: Mostrar URL de la función
+              shell: pwsh
               run: |
-                echo "### 🚀 Función desplegada" >> "$GITHUB_STEP_SUMMARY"
-                echo "URL: https://${AZURE_FUNCTIONAPP_NAME}.azurewebsites.net/api/HelloWorld" >> "$GITHUB_STEP_SUMMARY"
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### 🚀 Función desplegada"
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "URL: https://$($env:AZURE_FUNCTIONAPP_NAME).azurewebsites.net/api/HelloWorld"
  
